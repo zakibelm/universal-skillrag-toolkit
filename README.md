@@ -1,10 +1,44 @@
 # Universal SkillRAG Toolkit
 
-Un dépôt générique, trois fonctions indépendantes : préparer les documents pour un RAG, transformer un livre en skill, attribuer un skill à un agent.
+**Version : 0.2.0 — première version exécutable, en validation.**
+
+**Transformer des documents en sources consultables pour un RAG et en skills réutilisables pour des agents IA, avec deux traitements distincts et une attribution explicite des skills.**
+
+Universal SkillRAG Toolkit est une bibliothèque Python et un outil en ligne de commande. Il réunit dans un même dépôt la préparation documentaire, la création de connaissances structurées depuis un livre et la gestion locale des associations entre agents et skills.
+
+Son objectif est de réutiliser des composants existants et de conserver les références aux sources, sans imposer un métier, un fournisseur de modèles ou une base vectorielle.
+
+## Les trois fonctions
+
+| Fonction | Entrée | Résultat | Indépendance |
+|---|---|---|---|
+| Préparer le RAG | Document local | Original conservé, Markdown, passages et localisateurs | Ne crée aucun skill |
+| Créer un skill de livre | Document déjà préparé et modèle configuré | Skill autonome avec noyau, fiches et preuves | Ne reconstruit pas le RAG |
+| Attribuer un skill | Skill de livre ou skill personnalisé et identifiant d’agent | Copie versionnée et association dans le registre local | Aucun RAG ou modèle requis |
+
+**Exemple d’usage :** un agent de finance conserve ses skills métier. On sélectionne un ouvrage de comptabilité financière déjà conservé, on génère un complément de connaissances, on le relit, puis on l’attribue à cet agent. Le même outil peut servir en optique, logistique, audit ou tout autre domaine ; aucun traitement spécialisé n’est codé en dur.
+
+Un skill est un dossier de connaissances et d’instructions chargé par un agent. Un corpus RAG est une collection de sources dans laquelle un système recherche des passages. Le skill produit ici embarque ses références ; il reste utilisable sans connexion au RAG d’origine. Le chargement effectif dépend du runtime de l’agent.
+
+## État de la version 0.2
+
+Le moteur Python, les trois commandes et le registre local sont implémentés. Douze tests ont été exécutés avec succès sur des données synthétiques, avec modèle simulé pour la génération.
+
+L’interface graphique « Skills », le catalogue documentaire distant, l’activation dans un agent externe et le déploiement serveur restent à réaliser. L’adaptateur Docling est écrit mais n’a pas encore été validé sur un ouvrage réel dans ce projet. La présence de tests ne démontre pas la qualité des synthèses produites par un vrai modèle.
+
+## Documentation
+
+- [Historique des versions](CHANGELOG.md)
+- [Guide d’utilisation et premier essai](docs/USER_GUIDE.md)
+- [Architecture et séparation des fonctions](docs/ARCHITECTURE.md)
+- [Interfaces Python et formats produits](docs/IMPLEMENTATION.md)
+- [Protocole d’évaluation](docs/EVALUATION.md)
+- [Feuille de route](docs/ROADMAP.md)
+- [Composants repris, versions et licences](THIRD_PARTY.md)
 
 ## Installation
 
-Python 3.10 ou supérieur :
+Python 3.10 ou supérieur. Télécharger le dépôt, ouvrir un terminal dans son dossier, puis :
 
 ```bash
 pip install .
@@ -25,7 +59,7 @@ Le moteur natif traite Markdown/texte. L'adaptateur Docling optionnel couvre PDF
 
 ## 2. Créer un skill depuis un livre déjà conservé
 
-Choisir le bundle du livre dans le catalogue documentaire, puis :
+Dans la version CLI, choisir le dossier du livre parmi les bundles locaux. La sélection dans une interface de catalogue est une évolution prévue. Remplacer `EMPREINTE` et `votre-modele` par les valeurs réelles :
 
 ```bash
 skillrag create-skill ./data/documents/EMPREINTE --output ./data/generated-skills --base-url http://localhost:11434/v1 --model votre-modele
