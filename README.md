@@ -65,6 +65,10 @@ Dans la version CLI, choisir le dossier du livre parmi les bundles locaux. La s�
 skillrag create-skill ./data/documents/EMPREINTE --output ./data/generated-skills --base-url http://localhost:11434/v1 --model votre-modele
 ```
 
+Options d'identité : `--title`, `--subject`, `--description` (quand un agent doit l'utiliser, 500 caractères maximum) et `--edition`. Sans elles, le titre vient du nom du fichier. Le nom du skill se termine toujours par l'empreinte de l'édition : deux ouvrages, ou deux éditions, ne se confondent jamais dans un registre.
+
+La génération se fait par fenêtres de passages consécutifs (4000 caractères maximum). Un modèle peut renvoyer zéro point pour une fenêtre sans connaissance (titre, légende, bruit de page), à condition d'en donner la raison. Les erreurs transitoires sont reprises 3 fois au plus. Un échec persistant interrompt la création ; avec `--allow-partial`, le skill est écrit mais marqué **incomplet**, avec les passages concernés dans `provenance.json`. Un document dont plus de 40 % du texte ne produit aucune connaissance est refusé (extraction ou modèle probablement défaillants).
+
 Le document préparé est réutilisé sans relancer ni modifier le RAG. Produit un skill autonome : `SKILL.md` avec noyau compact, fiches, index lexical, sources embarquées et provenance. Le skill peut être utilisé sans connexion au RAG d'origine. La génération reste un brouillon à relire ; aucune couverture de 70–80 % n'est garantie.
 
 Le modèle compatible OpenAI doit être explicitement configuré. Pour un service nécessitant une clé, utiliser `SKILLRAG_API_KEY`. Aucun appel externe sans endpoint fourni. Vérifier les conditions de confidentialité du fournisseur choisi.
@@ -77,20 +81,20 @@ Après relecture, attribuer soit un skill créé depuis un livre, soit un skill 
 skillrag assign-skill ./mon-skill --agent finance --registry ./data/registry --reviewed
 ```
 
-Le registre conserve une copie identifiée par empreinte et l'association agent/skill. Plusieurs skills peuvent être attribués à un agent ; une nouvelle version du même nom remplace son association active. Cette opération n'appelle pas de modèle et ne modifie pas le RAG.
+Un skill marqué incomplet est refusé, sauf `--allow-incomplete`. Le registre conserve une copie identifiée par empreinte et l'association agent/skill. Plusieurs skills peuvent être attribués à un agent ; une nouvelle version du même nom remplace son association active. Cette opération n'appelle pas de modèle et ne modifie pas le RAG.
 
 **Le registre local ne charge pas automatiquement un agent externe.** Le système hôte doit lire l'association et charger le skill. L'interface graphique de sélection livre/agent et la connexion à un catalogue RAG distant ne sont pas encore implémentées.
 
 ## Réutilisation des deux BookToSkill
 
-- [virgiliojr94/book-to-skill](https://github.com/virgiliojr94/book-to-skill) : spécification de génération conservée ; sa philosophie guide la synthèse structurée.
-- [zhimaAi/BookToSkill](https://github.com/zhimaAi/BookToSkill) : constructeur/validateur et recherche lexicale réellement réutilisés.
+- [virgiliojr94/book-to-skill](https://github.com/virgiliojr94/book-to-skill) : **texte réutilisé** ; sa section « Philosophy » est insérée dans le prompt. Aucun code exécuté.
+- [zhimaAi/BookToSkill](https://github.com/zhimaAi/BookToSkill) : `build_skill.py` est **appelé** (validation et génération du format de skill) ; `search_index.py` est **copié sans modification** dans chaque skill et enveloppé par un point d'entrée du toolkit qui corrige la tokenisation.
 
-Les versions et licences sont consignées dans [THIRD_PARTY.md](THIRD_PARTY.md). Ce n'est pas une fusion de toutes leurs fonctions. Docling reste optionnel ; OCRmyPDF, LangExtract et xerj ne sont pas intégrés.
+Les versions, licences et le détail fichier par fichier sont dans [THIRD_PARTY.md](THIRD_PARTY.md). Ce n'est pas une fusion de toutes leurs fonctions. Docling reste optionnel ; OCRmyPDF, LangExtract et xerj ne sont pas intégrés.
 
 ## Vérification et limites
 
-Douze tests passent : provenance, secours, erreurs, refus des références inventées, conservation du RAG pendant la création du skill et attribution d'un skill personnalisé sans RAG. La génération est testée avec un modèle simulé. Docling et la qualité de synthèse sur un vrai ouvrage restent à vérifier. Les recherches lexicales upstream sont surtout adaptées à l'anglais/chinois ; la recherche française/arabe doit être améliorée et évaluée.
+Trente-trois tests passent : provenance, secours, erreurs, refus des références inventées, séparation RAG/skill/attribution, identité propre à chaque skill, reprises et génération incomplète, recherche française et arabe, et le chemin HTTP de `CompatibleModel` contre un fournisseur simulé local (succès, délai dépassé, réponses invalides, erreurs). La génération est testée avec un modèle simulé. Docling et la qualité de synthèse sur un vrai ouvrage restent à vérifier. La recherche livrée dans chaque skill ignore les accents et normalise l'arabe (diacritiques, variantes de l'alef) ; elle ne fait ni racinisation ni recherche sémantique, et n'a été éprouvée que sur des exemples synthétiques.
 
 Les documents, sorties et secrets restent hors du dépôt public. Isoler les convertisseurs avant utilisation en production sur des fichiers non fiables. Le système hôte applique les autorisations et le cloisonnement des clients.
 

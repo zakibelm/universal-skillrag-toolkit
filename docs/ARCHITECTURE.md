@@ -6,7 +6,7 @@ Original → extraction adaptée → contrôle structurel → bundle documentair
 
 ## BookToSkill
 
-Sélection d'un document conservé → lecture du bundle et contrôle de l'empreinte originale → génération structurée → validation des identifiants de preuves → skill autonome en brouillon. Le corpus documentaire existant reste intact. Le skill embarque ses propres références et n'exige pas d'interroger le RAG d'origine.
+Sélection d'un document conservé → lecture du bundle et contrôle de l'empreinte originale → génération structurée → validation des identifiants de preuves → skill autonome en brouillon. Le corpus documentaire existant reste intact. Le skill embarque ses propres références et n'exige pas d'interroger le RAG d'origine. Il porte une identité propre (nom suffixé par l'empreinte de l'édition, titre, sujet, description) et un statut : une génération partielle est marquée incomplète avec les passages concernés.
 
 Le noyau est borné et explicitement chargé par l'agent ; les fiches sont consultées à la demande. Les connaissances générées ne modifient pas les poids du modèle. Les citations et localisateurs permettent la relecture mais ne garantissent pas la justesse de la synthèse.
 

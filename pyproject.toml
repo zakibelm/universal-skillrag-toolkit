@@ -18,4 +18,4 @@ skillrag = "skillrag.cli:main"
 include = ["skillrag*"]
 
 [tool.setuptools.package-data]
-skillrag = ["upstream/**/*.py", "upstream/**/*.md", "upstream/**/LICENSE"]
+skillrag = ["upstream/**/*.py", "upstream/**/*.md", "upstream/**/LICENSE", "skill_assets/*.py"]

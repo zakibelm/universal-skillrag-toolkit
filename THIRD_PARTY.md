@@ -1,11 +1,17 @@
 # Composants externes
 
-## BookToSkill intégrés
+## BookToSkill : ce qui est réellement réutilisé
 
-- virgiliojr94/book-to-skill, commit `7540eefbe74933f5fc84c86becac52486b347778`, MIT, copyright (c) 2025 virgiliojr94. Le fichier `SKILL.md` est conservé sans modification comme `skillrag/upstream/virgilio/GENERATOR_SPEC.md` et sa philosophie est utilisée pour la synthèse. Licence complète adjacente.
-- zhimaAi/BookToSkill, commit `b8499c103588e303eaa23c238fbe13ae632c1ff4`, Apache-2.0. `scripts/build_skill.py` et `scripts/search_index.py` sont conservés sans modification dans `skillrag/upstream/zhimaai/`, avec la licence complète. Le premier fournit validation et génération du format de skill ; le second fournit la recherche lexicale. Le code de liaison propre au toolkit est dans `skillrag/knowledge.py`.
+| Projet et commit | Fichier amont | Statut dans le toolkit |
+|---|---|---|
+| virgiliojr94/book-to-skill, `7540eefbe74933f5fc84c86becac52486b347778`, MIT | `SKILL.md`, conservé comme `skillrag/upstream/virgilio/GENERATOR_SPEC.md` | **Texte réutilisé comme consigne.** Seule la section « Philosophy » est insérée dans le prompt de `CompatibleModel`. Aucun code de ce projet n'est exécuté. |
+| zhimaAi/BookToSkill, `b8499c103588e303eaa23c238fbe13ae632c1ff4`, Apache-2.0 | `scripts/build_skill.py` | **Moteur appelé.** Chargé dynamiquement par `skillrag/knowledge.py` : `require_text`, `optional_text_list`, `load_index`, `load_metadata`, `skill_markdown`, `build_openai_yaml`. |
+| | `scripts/search_index.py` | **Copié et enveloppé.** La copie est livrée dans chaque skill sous `scripts/_search_index_upstream.py`. Le point d'entrée `scripts/search_index.py` du skill est une enveloppe du toolkit (`skillrag/skill_assets/search_index.py`) qui ne remplace que la fonction `tokens` (accents français, arabe) ; le score, la lecture JSONL et le format de sortie restent ceux de l'amont. |
+| | `convert_documents.py`, `split_markdown.py`, `merge_index.py`, `batch_index.py`, `prepare_workflow.py` | **Non repris.** Ni copiés ni appelés. |
 
-Ces fichiers sont réutilisés, sans prétendre fusionner toutes les fonctions des projets. Leurs autres étapes de conversion ne sont pas dupliquées. Les instructions upstream sont des ressources du générateur, pas une installation de skill personnel dans ChatGPT.
+Fidélité des copies : le contenu est identique aux commits indiqués, à un retour à la ligne final près ajouté à chaque fichier copié (1 octet). L'empreinte binaire diffère donc de celle de l'amont ; les licences complètes sont adjacentes dans `skillrag/upstream/virgilio/LICENSE` et `skillrag/upstream/zhimaai/LICENSE`. Copyright de virgiliojr94 : 2025. Ce n'est pas une fusion des fonctions des deux projets.
+
+Les instructions upstream sont des ressources du générateur, pas une installation de skill personnel dans ChatGPT.
 
 ## Docling optionnel
 

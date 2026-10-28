@@ -5,7 +5,7 @@
 | Service Python | Commande | Effet |
 |---|---|---|
 | prepare_rag(source, output, **kwargs) | prepare-rag | Prépare uniquement les sources documentaires |
-| create_skill(bundle, output, generator) | create-skill | Génère un skill autonome à partir d’un document conservé |
+| create_skill(bundle, output, generator, identity=None, allow_partial=False) | create-skill | Génère un skill autonome à partir d’un document conservé |
 | assign_skill(skill, agent, registry, reviewed=False) | assign-skill | Conserve une copie versionnée et l’association locale |
 
 Ces services sont définis dans skillrag/services.py. La CLI est dans skillrag/cli.py. Les identifiants d’agents sont ceux de l’application hôte, pas des agents créés ou contactés automatiquement par cet outil.
@@ -18,7 +18,7 @@ La primitive interne ingest essaie les moteurs configurés dans l’ordre. Les m
 
 QualityPolicy vérifie la longueur minimale du texte, la présence de records et de localisateurs ainsi que le statut partiel. Les figures signalées comme manquantes entraînent aussi un rejet. Ces contrôles ne comparent pas l’intégralité du résultat à chaque page originale.
 
-La primitive ingest conserve une option generator pour l’appel composé interne et ses tests. Les services publics et la CLI recommandent les opérations indépendantes ; il n’existe pas d’option CLI --extract-only dans cette version.
+La primitive ingest ne génère jamais de skill : elle n’accepte plus de paramètre generator. La création d’un skill passe uniquement par create_skill, qui lit un bundle déjà conservé.
 
 ## Formats et provenance
 
@@ -32,7 +32,13 @@ Le format courant records.jsonl est un format de travail 0.2. Le fichier DATA_MO
 
 CompatibleModel appelle un endpoint Chat Completions explicitement fourni. Il demande un objet JSON contenant des points de connaissances, catégories et identifiants de preuves. Les documents sont présentés comme des données non fiables.
 
-Le moteur prépare des unités textuelles de 4000 caractères maximum et demande 1 à 12 points par unité. Les références doivent appartenir aux preuves autorisées. Le texte des preuves est reconstruit à partir de l’extraction, pas accepté comme une citation réécrite par le modèle.
+Les passages (records découpés à 4000 caractères maximum, à une frontière de ligne ou de phrase quand elle existe) sont regroupés en fenêtres consécutives de 4000 caractères au plus ; un titre ou une légende voyage donc avec ses voisins. Pour chaque fenêtre, le modèle renvoie de 0 à 12 points. Zéro point n’est accepté qu’avec un no_knowledge_reason valide (heading_only, caption_or_label, page_furniture, non_informative) ; sinon la réponse est invalide.
+
+Les références doivent appartenir aux passages de la fenêtre (1 à 8, sans doublon). Le texte des preuves est reconstruit à partir de l’extraction, pas accepté comme une citation réécrite par le modèle. Les erreurs transitoires (délai, connexion, 429, 5xx, réponse invalide) sont reprises 3 fois avec délai croissant ; 400 et 401 ne le sont pas.
+
+Un échec persistant interrompt la création (mode strict, par défaut). Avec allow_partial, le skill est écrit avec le statut incomplete, et provenance.json liste les passages en échec (erreur, nature, localisateurs) et les passages ignorés (raison, localisateurs). Si plus de 40 % des caractères produisent zéro point, la création est refusée en mode strict : un zéro point ne doit pas masquer une extraction ratée. assign_skill refuse un skill incomplet sauf allow_incomplete.
+
+Identité : titre, sujet, description, édition et nom sont fournis par l’appelant ou déduits du nom du fichier, jamais inventés par le modèle. Le nom se termine par huit caractères de l’empreinte SHA-256 du document.
 
 La génération utilise la philosophie conservée de virgiliojr94/book-to-skill et les fonctions de construction/validation ainsi que le script de recherche de zhimaAi/BookToSkill. Les copies upstream et leurs licences sont incluses dans le paquet ; les commits sont consignés dans THIRD_PARTY.md.
 

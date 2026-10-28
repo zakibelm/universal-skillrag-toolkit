@@ -90,8 +90,10 @@ class DoclingEngine:
                 "partial": "success" not in status or "partial" in status}
 
 
-def ingest(source, output, engines=None, policy=None, max_bytes=100_000_000, generator=None):
-    """First acceptable adapter wins; failures stay visible in the manifest.
+def ingest(source, output, engines=None, policy=None, max_bytes=100_000_000):
+    """Prepare a retained document bundle for a RAG. Never creates a skill (see services.create_skill).
+
+    First acceptable adapter wins; failures stay visible in the manifest.
 
     Callers may supply ordered engine adapters, e.g. a tested fallback converter.
     Basic gates detect empty/partial output, not completeness or factual accuracy.
@@ -135,14 +137,9 @@ def ingest(source, output, engines=None, policy=None, max_bytes=100_000_000, gen
             (work / "records.jsonl").write_text("".join(
                 json.dumps(r, ensure_ascii=False) + "\n" for r in result["records"]), encoding="utf-8")
             shutil.copyfile(source, work / ("original" + source.suffix.lower()))
-            knowledge = {"status": "not_requested"}
-            if generator is not None:
-                from .knowledge import build_knowledge
-                knowledge = build_knowledge(work, result["records"], digest, generator)
             manifest = {"schema_version": "0.2", "document_id": digest,
                         "source_name": source.name, "engine": engine.name,
                         "status": "extracted_pending_review", "attempts": attempts,
-                        "knowledge_generation": knowledge,
                         "quality_scope": "basic structural checks; human review required"}
             (work / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
             # Stage on destination filesystem, then atomically expose completed bundle.

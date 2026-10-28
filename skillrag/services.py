@@ -11,13 +11,17 @@ from .knowledge import build_knowledge
 
 
 def prepare_rag(source, output, **kwargs):
-    if "generator" in kwargs:
-        raise ValueError("RAG preparation does not generate skills")
+    """Document bundle for a RAG: original, Markdown, records. Creates no skill."""
     return ingest(source, output, **kwargs)
 
 
-def create_skill(bundle, output, generator):
-    """Read a retained document bundle without rebuilding or changing its RAG."""
+def create_skill(bundle, output, generator, identity=None, allow_partial=False):
+    """Read a retained document bundle without rebuilding or changing its RAG.
+
+    ``identity`` may hold title, subject, description, edition and name; defaults derive from the
+    source file name. A window that still fails after retries aborts, unless ``allow_partial``:
+    the skill is then written with status "incomplete" and the passages concerned are listed.
+    """
     bundle, output = Path(bundle).resolve(), Path(output).resolve()
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     document_id = manifest["document_id"]
@@ -35,11 +39,13 @@ def create_skill(bundle, output, generator):
         shutil.copyfile(bundle / "document.md", work / "document.md")
         if (bundle / "assets").is_dir():
             shutil.copytree(bundle / "assets", work / "assets")
-        info = build_knowledge(work, records, document_id, generator)
+        info = build_knowledge(work, records, document_id, generator, identity=identity,
+                               source_name=manifest["source_name"], allow_partial=allow_partial)
         root = work / "agent-skill"
         (root / "provenance.json").write_text(json.dumps({
             "document_id": document_id, "source_name": manifest["source_name"],
-            "status": "draft", "generation": info}, indent=2), encoding="utf-8")
+            "identity": info["identity"], "status": "incomplete" if info["incomplete"] else "draft",
+            "generation": info}, indent=2, ensure_ascii=False), encoding="utf-8")
         version = skill_digest(root)
         target = output / version
         if target.exists():
@@ -80,13 +86,18 @@ def skill_digest(root):
     return digest.hexdigest()
 
 
-def assign_skill(skill, agent, registry, reviewed=False):
+def assign_skill(skill, agent, registry, reviewed=False, allow_incomplete=False):
     """Record a reviewed, immutable skill copy for an application-managed agent.
 
+    Skills marked incomplete at generation are refused unless ``allow_incomplete``.
     This registry is not an installation into ChatGPT or any external agent runtime.
     """
     if not reviewed:
         raise ValueError("Review skill content before assignment; use --reviewed")
+    provenance = Path(skill) / "provenance.json"
+    if provenance.is_file() and not allow_incomplete:
+        if json.loads(provenance.read_text(encoding="utf-8")).get("status") == "incomplete":
+            raise ValueError("Skill is marked incomplete (see provenance.json); regenerate it or use --allow-incomplete")
     if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}", agent):
         raise ValueError("Invalid agent identifier")
     skill, registry = Path(skill).resolve(), Path(registry).resolve()

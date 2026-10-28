@@ -62,6 +62,10 @@ Pour un fournisseur nécessitant une clé, définir SKILLRAG_API_KEY dans l’en
 
 La commande lit le bundle existant, vérifie l’empreinte de l’original et produit un nouveau dossier de skill sans modifier le corpus RAG.
 
+Pour distinguer les ouvrages, ajouter `--title`, `--subject`, `--description` (quand un agent doit utiliser ce skill) et `--edition`. Le nom du skill se termine par l’empreinte de l’édition. Sans ces options, le titre est déduit du nom du fichier.
+
+Une fenêtre qui échoue encore après trois essais interrompt la création. Avec `--allow-partial`, le skill est écrit mais marqué incomplet : `SKILL.md` le signale et `provenance.json` liste les passages concernés. Un document dont plus de 40 % du texte ne produit aucune connaissance est refusé dans tous les cas où `--allow-partial` n’est pas donné.
+
 | Élément du skill | Usage |
 |---|---|
 | SKILL.md | Instructions et noyau de connaissances compact |
@@ -69,7 +73,9 @@ La commande lit le bundle existant, vérifie l’empreinte de l’original et pr
 | references/doc-index.jsonl | Index avec preuves exactes et localisateurs |
 | references/markdown/ | Source Markdown embarquée |
 | references/assets/ | Figures disponibles |
-| scripts/search_index.py | Recherche lexicale locale |
+| scripts/search_index.py | Recherche lexicale locale, insensible aux accents, arabe normalisé |
+| scripts/_search_index_upstream.py | Copie non modifiée de la recherche zhimaAi, chargée par le script précédent |
+| provenance.json | Identité, statut (draft ou incomplete), passages ignorés ou en échec |
 | agents/openai.yaml | Métadonnées d’interface |
 | provenance.json | Origine, version documentaire et statut brouillon |
 
@@ -103,7 +109,7 @@ Le registre copie le skill sous son empreinte et conserve l’association dans a
 python ./data/generated-skills/VERSION/scripts/search_index.py "reorder point"
 ```
 
-La recherche retourne jusqu’à cinq candidats avec preuves et références. Ce moteur est lexical ; la validation contextuelle revient à l’agent. Sa tokenisation upstream privilégie anglais et chinois : évaluer soigneusement français et arabe, sans supposer de recherche sémantique.
+La recherche retourne jusqu’à cinq candidats avec preuves et références. Ce moteur est lexical ; la validation contextuelle revient à l’agent. Le point d’entrée du toolkit remplace la tokenisation upstream (anglais et chinois) : les accents sont ignorés (« sécurité » trouve « securite ») et l’arabe est normalisé. Il n’y a ni racinisation (« réapprovisionner » ne trouve pas « réapprovisionnement ») ni recherche sémantique ; évaluer sur vos documents.
 
 ## Difficultés courantes
 
@@ -112,7 +118,9 @@ La recherche retourne jusqu’à cinq candidats avec preuves et références. Ce
 | Extraction insuffisante | Vérifier le texte, la taille du document et le moteur ; un scan peut nécessiter un traitement OCR adapté |
 | Docling absent | Installer l’option docling dans le même environnement Python |
 | Référence de preuve inconnue | La génération est rejetée ; vérifier le modèle et sa réponse structurée |
-| Erreur du modèle | Vérifier endpoint, disponibilité, nom du modèle, clé et prise en charge des réponses JSON |
+| Erreur du modèle | Vérifier endpoint, disponibilité, nom du modèle, clé et prise en charge des réponses JSON. Délai dépassé, 429 et 5xx sont repris 3 fois ; 401 et 400 ne le sont pas |
+| « Most of the document produced no knowledge » | Plus de 40 % du texte n’a produit aucune connaissance : inspecter le bundle (extraction) et le modèle, ou utiliser `--allow-partial` pour obtenir un skill marqué incomplet |
+| Attribution refusée : skill incomplet | Régénérer le skill, ou accepter explicitement avec `--allow-incomplete` |
 | Original modifié | Utiliser une nouvelle préparation ; ne pas remplacer l’original dans un bundle existant |
 | Skill attribué mais agent inchangé | Implémenter le chargement du registre dans le runtime hôte |
 | Résultat lexical peu pertinent | Essayer les termes du document ; la recherche hybride reste à développer |
