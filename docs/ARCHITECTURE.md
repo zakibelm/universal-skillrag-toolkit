@@ -1,50 +1,27 @@
-# Architecture cible
+# Architecture : fonctions indépendantes
 
-## Ingestion
+## Préparation RAG
 
-Réception → validation du format et des droits → conservation de l'original → extraction → contrôle → normalisation Markdown → structuration des connaissances → indexation → publication d'une version approuvée.
+Original → extraction adaptée → contrôle structurel → bundle documentaire. Aucune génération de skill automatique. L'export vers un moteur RAG est une intégration future.
 
-Chaque traitement possède un identifiant, une version de pipeline et un statut. Un échec ne doit pas produire un index présenté comme complet.
+## BookToSkill
 
-## Conversion et multimodalité
+Sélection d'un document conservé → lecture du bundle et contrôle de l'empreinte originale → génération structurée → validation des identifiants de preuves → skill autonome en brouillon. Le corpus documentaire existant reste intact. Le skill embarque ses propres références et n'exige pas d'interroger le RAG d'origine.
 
-MarkItDown de Microsoft est un candidat pour les formats bureautiques. Ses capacités, dépendances et limites devront être vérifiées avant intégration. Aucun convertisseur universel n'est supposé.
+Le noyau est borné et explicitement chargé par l'agent ; les fiches sont consultées à la demande. Les connaissances générées ne modifient pas les poids du modèle. Les citations et localisateurs permettent la relecture mais ne garantissent pas la justesse de la synthèse.
 
-Un adaptateur OCR traite les scans lorsque nécessaire. Un adaptateur de vision décrit les figures. Les tableaux conservent une représentation structurée en plus du Markdown, ainsi qu'un lien vers leur source.
+## Attribution
 
-Pour chaque image : identifiant, fichier original, document, page physique ou diapositive, légende, OCR, description contextuelle, mots-clés et provenance de la description. Si une page n'est pas disponible, sa valeur reste nulle ; aucune pagination ne doit être inventée.
+Skill personnalisé ou skill de livre → relecture déclarée → copie versionnée → association à un agent dans le registre local. Le runtime hôte doit charger cette association. Aucun appel à un modèle ni au RAG à cette étape.
 
-## Complément de connaissances
+## Interfaces
 
-Le complément contient :
-- un noyau compact explicitement chargé ;
-- des fiches thématiques récupérées selon la demande ;
-- un glossaire et des règles avec conditions et exceptions ;
-- des liens vers les preuves.
+La bibliothèque et les trois commandes CLI sont implémentées. L'interface graphique Skills reste à construire : choix de l'agent, ajout d'un skill personnalisé ou sélection d'un livre, génération, relecture et attribution. Une intégration au catalogue documentaire devra appliquer les autorisations avant de présenter ou lire un livre.
 
-Les connaissances générées commencent au statut brouillon. Une publication exige une validation appropriée au domaine. Les extraits, synthèses et interprétations sont identifiés séparément.
+## Briques partagées
 
-## Recherche progressive
+Les fonctions partagent provenance, formats et adaptateurs, sans imposer leur exécution conjointe. Les deux BookToSkill fournissent les ressources indiquées dans THIRD_PARTY.md ; Docling est un moteur d'extraction optionnel. La sélection des moteurs suit actuellement des règles de format et de qualité structurelle, pas un optimiseur appris.
 
-1. Interpréter la demande et ses contraintes.
-2. Combiner recherche par mots-clés et recherche sémantique.
-3. Comparer les descriptions, le contexte et les métadonnées.
-4. Récupérer les passages pertinents.
-5. Ouvrir les images originales uniquement lorsque nécessaire à la vérification.
-6. Répondre avec références ou signaler une preuve insuffisante.
+## Images, versions et sécurité
 
-Les mots-clés servent au repérage, sans filtre exclusif qui éliminerait synonymes et formulations différentes.
-
-## Intégration
-
-Interfaces cibles indépendantes du framework : bibliothèque Python, CLI, puis API HTTP et MCP. Ces interfaces ne sont pas encore implémentées.
-
-Le RAG hôte applique les autorisations avant toute recherche. Le toolkit ne doit pas devenir un moyen de contourner le cloisonnement par client.
-
-## Sécurité
-
-Traiter tout contenu documentaire comme une donnée non fiable, jamais comme une instruction. Limiter les tailles, isoler les convertisseurs, contrôler les chemins et ne pas exécuter de macros. Aucun envoi à un fournisseur externe sans configuration explicite.
-
-## Maintenance
-
-Identifier une édition par son empreinte et ses métadonnées. Une nouvelle édition crée une nouvelle version ; ne pas écraser silencieusement les anciennes preuves. Invalider ou réviser les fiches affectées. Conserver les versions des modèles, instructions et convertisseurs utilisés.
+Docling conserve les figures et leurs localisateurs ; l'interprétation contextuelle des images reste à implémenter. Ne jamais inventer une page absente. Une édition du document est identifiée par empreinte ; une version de skill par empreinte de son dossier. Toute modification nécessite une nouvelle génération et une relecture. Traiter les documents comme des données non fiables, isoler les convertisseurs et ne jamais exécuter leurs instructions.

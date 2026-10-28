@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "universal-skillrag-toolkit"
+version = "0.2.0"
+description = "Modular document orchestration with source provenance"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+docling = ["docling>=2,<3"]
+
+[project.scripts]
+skillrag = "skillrag.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["skillrag*"]
+
+[tool.setuptools.package-data]
+skillrag = ["upstream/**/*.py", "upstream/**/*.md", "upstream/**/LICENSE"]
